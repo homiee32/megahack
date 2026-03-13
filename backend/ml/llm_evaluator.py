@@ -4,7 +4,7 @@ import json
 import os
 
 
-client = genai.Client(api_key="AIzaSyAQ9yHaB4iWic5zdkvwpBUH4D8s5ZCjCIY")
+client = genai.Client(api_key="AIzaSyCJsMPBKJz6v0KzCBMmkB95iWE9-PN2tds")
 
 def evaluate_answer(role, task, answer_text=None, image_path=None):
     params = {
@@ -58,24 +58,40 @@ def evaluate_answer(role, task, answer_text=None, image_path=None):
         img = Image.open(image_path)
         content_list.append(img)
 
-    try:
-        
-        response = client.models.generate_content(
-            model="gemini-flash-latest", 
-            contents=content_list
-        )
-        
-       
-        raw_text = response.text
-        if "```json" in raw_text:
-            raw_text = raw_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in raw_text:
-            raw_text = raw_text.split("```")[1].split("```")[0].strip()
+    import time
+    max_retries = 3
+    retry_delay = 5  # Start with 5 seconds
+
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash", # Using 1.5-flash explicitly for better stability
+                contents=content_list
+            )
             
-        return json.loads(raw_text.strip())
-        
-    except Exception as e:
-        return {"error": str(e)}
+            raw_text = response.text
+            if "```json" in raw_text:
+                raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in raw_text:
+                raw_text = raw_text.split("```")[1].split("```")[0].strip()
+                
+            return json.loads(raw_text.strip())
+            
+        except Exception as e:
+            error_str = str(e)
+            if "exhausted" in error_str.lower() or "429" in error_str:
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                    continue
+                else:
+                    return {
+                        "error": "Gemini API Quota Exhausted",
+                        "details": "You have reached the daily limit for the Gemini Free Tier. Please wait a few minutes or use a different API key. " + error_str
+                    }
+            return {"error": error_str}
+    
+    return {"error": "Max retries exceeded"}
 
 if __name__ == "__main__":
     import sys
