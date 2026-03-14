@@ -4,7 +4,7 @@ import json
 import os
 
 
-client = genai.Client(api_key="AIzaSyCJsMPBKJz6v0KzCBMmkB95iWE9-PN2tds")
+client = genai.Client(api_key="AIzaSyDmv0p3Dtf7zxoqATQR4Syc7uTIC62gqtI")
 
 def evaluate_answer(role, task, answer_text=None, image_path=None):
     params = {
@@ -65,7 +65,7 @@ def evaluate_answer(role, task, answer_text=None, image_path=None):
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash", # Using 1.5-flash explicitly for better stability
+                model="gemini-2.5-flash-lite", # Using 1.5-flash explicitly for better stability
                 contents=content_list
             )
             

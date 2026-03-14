@@ -7,10 +7,12 @@ import generateToken from '../utils/generateToken.js';
 const registerUser = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
+    console.log('Registration request received:', { name, email });
 
     const userExists = await User.findOne({ email });
 
     if (userExists) {
+      console.log('User already exists:', email);
       res.status(400);
       throw new Error('User already exists');
     }
@@ -22,17 +24,24 @@ const registerUser = async (req, res, next) => {
     });
 
     if (user) {
+      console.log('User created successfully in DB:', user._id);
       res.status(201).json({
         _id: user._id,
         name: user.name,
         email: user.email,
+        skillScore: user.skillScore,
+        marketValueMin: user.marketValueMin,
+        marketValueMax: user.marketValueMax,
+        industryReadiness: user.industryReadiness,
         token: generateToken(user._id),
       });
     } else {
+      console.error('Failed to create user object');
       res.status(400);
       throw new Error('Invalid user data');
     }
   } catch (error) {
+    console.error('Error during registration:', error.message);
     next(error);
   }
 };
@@ -51,6 +60,10 @@ const loginUser = async (req, res, next) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        skillScore: user.skillScore,
+        marketValueMin: user.marketValueMin,
+        marketValueMax: user.marketValueMax,
+        industryReadiness: user.industryReadiness,
         token: generateToken(user._id),
       });
     } else {
