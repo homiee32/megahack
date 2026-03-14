@@ -2,7 +2,7 @@
   "name": "jobsim-root",
   "version": "1.0.0",
   "scripts": {
-    "start": "concurrently \"npm run server --prefix backend\" \"npm run dev --prefix megahack\"",
+    "start": "concurrently \"npm run server --prefix backend\" \"npm run dev --prefix megahack\" \"cd backend/ml && python app.py\"",
     "install-all": "npm install --prefix backend && npm install --prefix megahack"
   },
   "devDependencies": {

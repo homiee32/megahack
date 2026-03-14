@@ -53,7 +53,7 @@ Navigate to the `backend/ml` folder:
 
 ## 🏃 Running the Application
 
-You can run both the frontend and backend concurrently from the **root directory**:
+You can now run the **entire project stack** (Frontend, Backend, and ML Service) with a single command from the **root directory**:
 
 ```bash
 npm start

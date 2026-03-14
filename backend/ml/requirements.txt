@@ -1,0 +1,8 @@
+google-genai
+Pillow
+python-dotenv
+flask
+flask-cors
+joblib
+pandas
+scikit-learn

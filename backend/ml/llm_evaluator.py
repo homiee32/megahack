@@ -2,9 +2,13 @@ from google import genai
 from PIL import Image
 import json
 import os
+from dotenv import load_dotenv
 
+# Load environment variables from backend/.env
+dotenv_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+load_dotenv(dotenv_path)
 
-client = genai.Client(api_key="AIzaSyDmv0p3Dtf7zxoqATQR4Syc7uTIC62gqtI")
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 def evaluate_answer(role, task, answer_text=None, image_path=None):
     params = {
