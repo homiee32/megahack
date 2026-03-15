@@ -317,6 +317,7 @@ export const AssessmentPage = () => {
     const saved = localStorage.getItem('assessment_daily_scores');
     return saved ? JSON.parse(saved) : {};
   });
+  const [predictedSalary, setPredictedSalary] = useState<number | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [response, setResponse] = useState('');
 
@@ -342,16 +343,21 @@ export const AssessmentPage = () => {
     setAnalysisResult(null);
 
     try {
+      const userInfo = localStorage.getItem('jobsim_user');
+      const token = userInfo ? JSON.parse(userInfo).token : '';
+
       const res = await fetch('/api/analysis/evaluate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           role: role || 'general',
           task: currentAssessment.task || currentAssessment.description,
           answer_text: response,
-          image_path: "" // Placeholder for now
+          image_path: "", // Placeholder for now
+          day: currentDay
         }),
       });
 
@@ -382,7 +388,38 @@ export const AssessmentPage = () => {
       setResponse('');
       setAnalysisResult(null);
     } else {
-      setIsSuccessModalOpen(true);
+      handleCompleteSimulation();
+    }
+  };
+
+  const handleCompleteSimulation = async () => {
+    setIsAnalyzing(true);
+    try {
+      const userInfo = localStorage.getItem('jobsim_user');
+      const token = userInfo ? JSON.parse(userInfo).token : '';
+
+      const res = await fetch('/api/analysis/complete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          role: role || 'general'
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setPredictedSalary(data.predictedSalary);
+        setIsSuccessModalOpen(true);
+      } else {
+        alert(data.error || "Failed to complete simulation");
+      }
+    } catch (error) {
+      console.error('Error completing simulation:', error);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -590,6 +627,13 @@ export const AssessmentPage = () => {
                 <div className="text-6xl font-black text-indigo-600 mb-2">{calculateFinalAverage()}</div>
                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Average Industry Score</div>
               </div>
+
+              {predictedSalary !== null && (
+                <div className="p-8 rounded-2xl bg-indigo-600 text-white mb-8 shadow-xl shadow-indigo-100">
+                  <p className="text-xs font-black uppercase tracking-widest mb-2 opacity-80">Predicted Annual Salary</p>
+                  <p className="text-4xl font-black">₹{predictedSalary.toLocaleString()}</p>
+                </div>
+              )}
               
               <div className="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm">
                 <p className="text-sm font-black text-slate-400 uppercase tracking-widest mb-2">Expert Feedback</p>
@@ -599,56 +643,7 @@ export const AssessmentPage = () => {
 
             <Button 
               onClick={async () => {
-                const finalAvg = calculateFinalAverage();
-                const skillScore = Math.round(Number(finalAvg) * 10);
-                
-                console.log('Attempting to save skill score:', { finalAvg, skillScore });
-
-                // Update backend profile
-                try {
-                  const userInfo = localStorage.getItem('jobsim_user');
-                  if (userInfo) {
-                    const { token } = JSON.parse(userInfo);
-                    const response = await fetch('/api/users/profile', {
-                      method: 'PUT',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                      },
-                      body: JSON.stringify({ 
-                        skillScore,
-                        industryReadiness: Math.min(100, skillScore + 10),
-                        marketValueMin: 50000 + (skillScore * 500),
-                        marketValueMax: 70000 + (skillScore * 800)
-                      })
-                    });
-
-                    if (response.ok) {
-                      const updatedData = await response.json();
-                      console.log('Profile updated successfully:', updatedData);
-                      
-                      // Update jobsim_user in localStorage to sync with new data
-                      const currentUserInfo = JSON.parse(userInfo);
-                      localStorage.setItem('jobsim_user', JSON.stringify({
-                        ...currentUserInfo,
-                        skillScore: updatedData.skillScore,
-                        marketValueMin: updatedData.marketValueMin,
-                        marketValueMax: updatedData.marketValueMax,
-                        industryReadiness: updatedData.industryReadiness
-                      }));
-                    } else {
-                      const errorText = await response.text();
-                      console.error('Failed to update profile. Status:', response.status, errorText);
-                      alert(`Failed to save score. Error: ${errorText}`);
-                    }
-                  } else {
-                    console.warn('No user info found in localStorage');
-                  }
-                } catch (error) {
-                  console.error('Failed to update skill score on backend:', error);
-                  alert('Network error while saving your score. Please check your connection.');
-                }
-
+                // The profile is now updated by the backend /complete endpoint automatically
                 localStorage.removeItem('assessment_current_day');
                 localStorage.removeItem('assessment_daily_scores');
                 navigate('/dashboard');

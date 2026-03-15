@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from llm_evaluator import evaluate_answer # Renamed for clean import
+from salary_predictor import predict_salary
 import os
 
 app = Flask(__name__)
@@ -24,6 +25,22 @@ def evaluate():
 
         result = evaluate_answer(role, task, answer_text, image_path)
         return jsonify(result), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    try:
+        data = request.json
+        role = data.get('role')
+        scores = data.get('scores') # Expecting { "p1": x, "p2": y, "p3": z, "p4": w }
+
+        if not role or not scores:
+            return jsonify({"error": "Missing required fields (role, scores)"}), 400
+
+        prediction = predict_salary(role, scores)
+        return jsonify({"predicted_salary": prediction}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
